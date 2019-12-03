@@ -1,5 +1,6 @@
 import numpy as np
-
+import types
+from abc import ABC, abstractmethod 
 
 # Possible directions to move on the board
 DIRECTIONS = [[0, 1], [1, 1], [1, 0], [1, -1],\
@@ -7,8 +8,64 @@ DIRECTIONS = [[0, 1], [1, 1], [1, 0], [1, -1],\
 
 BOARD_SIZE = 8
 
+
+class Player(ABC):
+    @abstractmethod
+    def get_move(self, board: np.ndarray,options) -> np.array:
+        pass
+
+class ManualPlayer(Player):
+    def __init__(self,name: str):
+        super().__init__()
+        self.name =  name
+
+
+    def get_move(self,board,options):
+        x = 0
+        y = 0
+        goodInput = False
+        while(not goodInput):
+            self.print_board(board,options)
+            res = input( \
+                "{}, where would you like to move (x ==> [0,7], y ==> [0,7])?: ".format(self.name))
+            print(res)
+
+            try:
+                x = int(res[0])
+                y = int(res[2])
+                res = [x,y]
+                if (type(res) is str and x < BOARD_SIZE and y < BOARD_SIZE and len(res)==3, res in options):
+                    goodInput = True
+                else:
+                    print("Bad move 1")
+            except:
+                print("Bad move 2")
+
+        return res
+
+    @staticmethod
+    def print_board(board,options):
+
+        print("   ",end="")
+        for cols in range(len(board)):
+            print(str(cols),end= " ")
+        print()
+        print("   ",end="")
+        print("-"*15)
+
+        for rows in range(len(board)):
+            print(str(rows),end =" | ")
+            for cols in range(len(board)):
+                if([rows,cols] in np.array(options).tolist()):
+                    print("X", end=" ")
+                else:
+                    print(str(board[rows,cols]),end=" ")
+            print()
+
+
 class Othello(object):
-    def __init__(self,player1 = ManualPlayer(),player2 = manualPlayer()):
+    def __init__(self,player1: Player = ManualPlayer("P1"),\
+        player2: Player = ManualPlayer("P2")):
         """
         Othello Game
 
@@ -29,56 +86,65 @@ class Othello(object):
         self.board[3,4] = '1'
         self.board[4,3] = '1' 
 
-        self.p1 = player1
-        self.p2 = player2
+        self.players = []
+        self.players.append(player1)
+        self.players.append(player2)
         self.turn = 1
         self.count = 0
     
-    def getValidMoves(self):
+    def get_valid_moves(self):
         """
         Gets the moves possible by the current player
         
         returns an array of all the possible moves
         """
-        validMoves = []:
+        validMoves = []
 
-        for i in range(8):
-            for y in range(8):
-                pos = [x,y]
-                if self.board[pos] = 0:
-                    if(update_board(pos),__testing=True):
+        for x in range(BOARD_SIZE):
+            for y in range(BOARD_SIZE):
+                print("{} {}".format(x,y))
+                pos = np.array([x,y])
+                if self.board[pos[0],pos[1]] == 0:
+                    if(self.update_board(pos,_testing=True)):
                         validMoves.append(pos)
 
         return validMoves
 
-    def in_board(pos):
+    def in_board(self,pos : np.ndarray) -> bool:
         """
         Determines whether this position is on the board
         """
-        if 0 > pos[0]  or pos[0] < BOARD_SIZE
+        if 0 > pos[0]  or pos[0] >= BOARD_SIZE:
             return False
-        if 0 > pos[1]  or pos[1] < BOARD_SIZE
+        if 0 > pos[1]  or pos[1] >= BOARD_SIZE:
             return False
 
         return True
 
-    def update_direction(self, move, direction):
+    def update_direction(self, move : np.ndarray, direction: np.ndarray):
         """
         Helper Method for update_board
         Updates the board in a specific direction:
         """
-        pos = move
+        pos = move.copy()
         pos += direction 
-        while(in_board(pos))
-            if board[pos] == self.turn:
+        while(self.in_board(pos)):
+            if self.board[pos[0],pos[1]] == self.turn:
                 pos -= direction
-                while(pos != move):
-                    board[pos] = self.turn
+                while((pos != move).any()):
+                    print("Here77")
+                    self.board[pos[0], pos[1]] = self.turn
                     self.count += 1
-            if board[pos] == 0
+                    pos -= direction
                 break
 
-    def update_board(self,move, __testing = True):
+            elif self.board[pos[0],pos[1]] == 0:
+                break
+            else:
+                pos += direction
+            print(pos)
+
+    def update_board(self,move, _testing : bool = True ) -> bool :
         """
         Used to update the board with a player's move
         
@@ -92,16 +158,53 @@ class Othello(object):
         temp = self.board.copy()
         self.count = 0
 
-        for direction in DIRECTIONS
+        for direction in DIRECTIONS:
             self.update_direction(move,direction)
 
-        if count == 0:
+        if self.count == 0:
             self.board = temp
             return False
         else:
-            if __testing:
-            self.board = temp
-            return True
+            if _testing:
+                self.board = temp
+                return True
+    
+    def gameCount(self):
+        p1Count = 0
+        p2Count = 0
 
-def print_board(self):
-    print '\n'.join(' '.join(str(cell) for cell in row) for row in self.board)
+        for x in range(BOARD_SIZE):
+            for y in range(BOARD_SIZE):
+                if self.board[x,y] == 1:
+                    p1Count += 1
+                elif self.board[x,y] == 2:
+                    p2Count += 1
+
+        return([p1Count,p2Count])
+
+    
+    def run(self):
+        """
+        Runs the Othello Game
+        """
+        noMove = 0
+        while(noMove < 2):
+            print("Here")
+            options = self.get_valid_moves()
+            print(options)
+            if len(options) > 0:
+                res = False
+                while(not res):
+                    move = self.players[self.turn-1].get_move(self.board.copy(),options.copy())
+                    res = self.update_board()
+            else:
+                noMove += 1
+
+            self.turn = (self.turn * 2 ) % 3  # 1 --> 2  2 --> 1
+        return self.gameCount()
+
+
+
+if __name__ == "__main__":
+    game = Othello()
+    print(game.run())
