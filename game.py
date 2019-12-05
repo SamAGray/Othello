@@ -3,16 +3,29 @@ import types
 from abc import ABC, abstractmethod 
 
 # Possible directions to move on the board
-DIRECTIONS = [[0, 1], [1, 1], [1, 0], [1, -1],\
-     [0, -1], [-1, -1], [-1, 0], [-1, 1]]
+DIRECTIONS = np.array([[0, 1], [1, 1], [1, 0], [1, -1],\
+     [0, -1], [-1, -1], [-1, 0], [-1, 1]])
 
 BOARD_SIZE = 8
 
 
 class Player(ABC):
+    """
+    Abstract for a player.
+
+    Child needs to implement get move
+    """
     @abstractmethod
     def get_move(self, board: np.ndarray,options) -> np.array:
+        """
+        
+
+        """
         pass
+
+class RandomPlayer(Player):
+    def get_move(self,board,options):
+        return options[np.random.randint(0,len(options))]
 
 class ManualPlayer(Player):
     def __init__(self,name: str):
@@ -26,32 +39,35 @@ class ManualPlayer(Player):
         goodInput = False
         while(not goodInput):
             self.print_board(board,options)
+            print("Avaliable Moves:",end=" ")
+            for i in options:
+                print(i, end=" ")
+            print()
             res = input( \
                 "{}, where would you like to move (x ==> [0,7], y ==> [0,7])?: ".format(self.name))
-            print(res)
 
             try:
                 x = int(res[0])
                 y = int(res[2])
                 res = [x,y]
-                if (type(res) is str and x < BOARD_SIZE and y < BOARD_SIZE and len(res)==3, res in options):
+                if (x < BOARD_SIZE and y < BOARD_SIZE and res in np.array(options).tolist()):
                     goodInput = True
                 else:
-                    print("Bad move 1")
+                    print("Bad move Try again")
             except:
-                print("Bad move 2")
+                print("Bad move try again")
 
         return res
 
     @staticmethod
     def print_board(board,options):
 
-        print("   ",end="")
+        print("    ",end="")
         for cols in range(len(board)):
             print(str(cols),end= " ")
         print()
         print("   ",end="")
-        print("-"*15)
+        print("-"*16)
 
         for rows in range(len(board)):
             print(str(rows),end =" | ")
@@ -102,7 +118,6 @@ class Othello(object):
 
         for x in range(BOARD_SIZE):
             for y in range(BOARD_SIZE):
-                print("{} {}".format(x,y))
                 pos = np.array([x,y])
                 if self.board[pos[0],pos[1]] == 0:
                     if(self.update_board(pos,_testing=True)):
@@ -127,22 +142,23 @@ class Othello(object):
         Updates the board in a specific direction:
         """
         pos = move.copy()
-        pos += direction 
+        
+
+        pos += direction
         while(self.in_board(pos)):
             if self.board[pos[0],pos[1]] == self.turn:
                 pos -= direction
                 while((pos != move).any()):
-                    print("Here77")
                     self.board[pos[0], pos[1]] = self.turn
                     self.count += 1
                     pos -= direction
                 break
 
             elif self.board[pos[0],pos[1]] == 0:
+
                 break
             else:
                 pos += direction
-            print(pos)
 
     def update_board(self,move, _testing : bool = True ) -> bool :
         """
@@ -167,7 +183,9 @@ class Othello(object):
         else:
             if _testing:
                 self.board = temp
-                return True
+            else:
+                self.board[move[0],move[1]] = self.turn
+            return True
     
     def gameCount(self):
         p1Count = 0
@@ -189,22 +207,18 @@ class Othello(object):
         """
         noMove = 0
         while(noMove < 2):
-            print("Here")
             options = self.get_valid_moves()
-            print(options)
             if len(options) > 0:
                 res = False
                 while(not res):
                     move = self.players[self.turn-1].get_move(self.board.copy(),options.copy())
-                    res = self.update_board()
+                    res = self.update_board(move,_testing=False)
             else:
                 noMove += 1
-
             self.turn = (self.turn * 2 ) % 3  # 1 --> 2  2 --> 1
         return self.gameCount()
 
-
-
 if __name__ == "__main__":
-    game = Othello()
+    game = Othello(player1=RandomPlayer(),player2=RandomPlayer())
     print(game.run())
+    print(game.board)
